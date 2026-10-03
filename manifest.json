@@ -1,0 +1,36 @@
+{
+ "symbol": "XAUUSD",
+ "source": "XAUUSD.iux",
+ "sourceLabel": "IUX (MT5 tick → M1)",
+ "digits": 2,
+ "contractSize": 100,
+ "point": 0.01,
+ "from": 1704150300,
+ "to": 1790974620,
+ "bars": 964317,
+ "files": [
+  {
+   "year": 2024,
+   "file": "m1_2024.bin",
+   "bars": 348993,
+   "from": 1704150300,
+   "to": 1735682220
+  },
+  {
+   "year": 2025,
+   "file": "m1_2025.bin",
+   "bars": 348371,
+   "from": 1735772700,
+   "to": 1767218220
+  },
+  {
+   "year": 2026,
+   "file": "m1_2026.bin",
+   "bars": 266953,
+   "from": 1767309000,
+   "to": 1790974620
+  }
+ ],
+ "built": "2026-10-03T12:07:36+00:00",
+ "ticks": 174374960
+}
