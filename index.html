@@ -175,9 +175,10 @@ td, .acct b, .tk-meta b, .qt b, .stat b { font-variant-numeric: tabular-nums; }
 .pane { position: relative; min-width: 0; min-height: 0; background: var(--chart); overflow: hidden; }
 #charts:not(.layout-1) .pane.active::after { content: ""; position: absolute; inset: 0; border: 1px solid var(--accent); pointer-events: none; z-index: 7; }
 
-/* แถบควบคุม Replay ลอยกลางล่างแบบ TradingView */
+/* แถบควบคุม Replay ลอยกลางล่างแบบ TradingView
+   จัดกึ่งกลางด้วย margin ห้ามใช้ transform — transform ทำให้เมนูความเร็ว (position: fixed) ข้างในเด้งผิดที่จนหลุดจอ */
 #replayBar {
-  position: absolute; left: 50%; bottom: 40px; transform: translateX(-50%); z-index: 9;
+  position: absolute; left: 0; right: 0; margin: 0 auto; width: max-content; bottom: 40px; z-index: 9;
   display: flex; align-items: center; gap: 2px; padding: 4px 6px;
   background: var(--panel); border: 1px solid var(--line-2); border-radius: 10px; box-shadow: var(--shadow);
 }
@@ -443,7 +444,7 @@ kbd { display: inline-block; min-width: 20px; text-align: center; padding: 0 5px
   #tools { width: 42px; }
   .tool { width: 32px; height: 32px; }
   .acct { display: none; }
-  #replayBar { left: 6px; right: 6px; bottom: 30px; transform: none; justify-content: space-between; overflow-x: auto; scrollbar-width: none; }
+  #replayBar { left: 6px; right: 6px; width: auto; bottom: 30px; justify-content: space-between; overflow-x: auto; scrollbar-width: none; }
   #replayBar .replay-clock { font-size: 11px; padding: 0 2px; }
   #replayBar .replay-clock b { font-size: 11px; }
   #pickBtn, #replayBar .rb-sep:first-of-type { display: none; }
@@ -833,6 +834,7 @@ kbd { display: inline-block; min-width: 20px; text-align: center; padding: 0 5px
         <tr><td><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd></td><td>สี่เหลี่ยม (ตีกรอบ)</td></tr>
         <tr><td><kbd>Shift</kbd> + ลาก</td><td>วัดระยะราคา/เวลา</td></tr>
         <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></td><td>ย้อน / ทำซ้ำ รูปวาด</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>X</kbd> / <kbd>V</kbd></td><td>คัดลอก / ตัด / วาง รูปวาดที่เลือก</td></tr>
         <tr><td><kbd>Del</kbd> · <kbd>Esc</kbd></td><td>ลบรูปที่เลือก · ยกเลิก</td></tr>
       </table>
     </div>
@@ -1883,6 +1885,7 @@ function extendSeg(x1, y1, x2, y2, extL, extR) {
 }
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random())).replace(/-/g, '').slice(0, 8);
 const clone = (o) => JSON.parse(JSON.stringify(o));
+let clipboard = null; // รูปวาดที่คัดลอกไว้ (Ctrl+C) ใช้ร่วมทุกกราฟ — { d, n: จำนวนครั้งที่วางแล้ว }
 function fmtDur(sec) {
   sec = Math.abs(sec);
   const d = Math.floor(sec / 86400), h = Math.floor((sec % 86400) / 3600), m = Math.round((sec % 3600) / 60);
@@ -2405,7 +2408,7 @@ class Overlay {
       items.push(el('button', { class: 'db-btn accent', title: 'เปิดหน้าออเดอร์ด้วยราคาจากเครื่องมือนี้', onclick: () => this.onPositionOrder?.(d) }, 'ส่งเป็นออเดอร์'));
     }
     items.push(el('span', { class: 'db-sep' }));
-    items.push(el('button', { class: 'db-btn', title: 'ทำสำเนา', onclick: () => this.duplicateSelected() }, 'สำเนา'));
+    items.push(el('button', { class: 'db-btn', title: 'ทำสำเนา (หรือ Ctrl+C แล้ว Ctrl+V)', onclick: () => this.duplicateSelected() }, 'สำเนา'));
     items.push(el('button', { class: 'db-btn' + (d.locked ? ' on' : ''), title: 'ล็อกไม่ให้เลื่อน', onclick: set(() => { d.locked = !d.locked; }) }, d.locked ? 'ล็อกอยู่' : 'ล็อก'));
     items.push(el('button', { class: 'db-btn danger', title: 'ลบ (Delete)', onclick: () => this.deleteSelected() }, 'ลบ'));
     bar.replaceChildren(...items);
@@ -2430,14 +2433,73 @@ class Overlay {
   duplicateSelected() {
     const d = this.drawings.find((q) => q.id === this.selected);
     if (!d) return;
+    this._add(this._shifted(clone(d), 1));
+  }
+  /** Ctrl+C — คัดลอกรูปที่เลือก */
+  copySelected() {
+    const d = this.drawings.find((q) => q.id === this.selected);
+    if (!d) return false;
+    clipboard = { d: clone(d), n: 0 };
+    return true;
+  }
+  /** Ctrl+X — คัดลอกแล้วลบ */
+  cutSelected() { return this.copySelected() && this.deleteSelected(); }
+  get canPaste() { return !!clipboard; }
+  /** Ctrl+V — วางรูปที่คัดลอกไว้ เลื่อนลงทีละขั้นทุกครั้งที่วาง ถ้าตกนอกจอจะวางกลางกราฟ
+   *  at = { x, y } วางให้จุดแรกของรูปอยู่ที่ตำแหน่งนั้น (เมนูคลิกขวา) */
+  paste(at) {
+    if (!clipboard) return false;
+    let c = clone(clipboard.d);
+    if (at) c = this._moveTo(c, at.x, at.y);
+    else {
+      c = this._shifted(c, ++clipboard.n);
+      if (!this._visible(c)) c = this._moveTo(c, this.paneW / 2, this.paneH / 2);
+    }
+    this._add(c);
+    return true;
+  }
+  _add(c) {
     this._pushUndo();
-    const c = clone(d);
     c.id = uid(); c.locked = false;
-    const dy = 12;
-    c.pts = c.pts.map((q) => ({ t: q.t, p: q.p == null ? null : (this.pOf(this.yOf(q.p) + dy) ?? q.p) }));
     this.drawings.push(c);
     this.selected = c.id;
     this._changed();
+  }
+  /** เลื่อนสำเนาลง k ขั้น (ขั้นละ 12px) — เส้นแนวตั้งที่ไม่มีราคาเลื่อนไปทางขวาขั้นละ 3 แท่งแทน */
+  _shifted(d, k) {
+    const v = this.getView(), hasP = d.pts.some((q) => q.p != null);
+    d.pts = d.pts.map((q) => {
+      if (hasP) {
+        const y = q.p == null ? null : this.yOf(q.p);
+        return { ...q, p: y == null ? q.p : (this.pOf(y + 12 * k) ?? q.p) };
+      }
+      const L = q.t == null ? null : v.timeToLogical(q.t);
+      return { ...q, t: L == null ? q.t : v.logicalToTime(L + 3 * k) };
+    });
+    return d;
+  }
+  /** ย้ายทั้งรูปให้จุดแรกไปอยู่ที่ (x, y) โดยคงรูปทรงเดิม */
+  _moveTo(d, x, y) {
+    const v = this.getView(), a = d.pts[0];
+    const L = this._x2l(x), La = a.t == null ? null : v.timeToLogical(a.t);
+    const p = this.pOf(y);
+    const dL = L == null || La == null ? 0 : L - La;
+    const dp = p == null || a.p == null ? 0 : p - a.p;
+    d.pts = d.pts.map((q) => ({
+      ...q,
+      t: q.t == null || !dL ? q.t : v.logicalToTime(v.timeToLogical(q.t) + dL),
+      p: q.p == null ? null : Math.round((q.p + dp) * 100) / 100,
+    }));
+    return d;
+  }
+  /** กรอบของรูปซ้อนกับพื้นที่กราฟที่เห็นอยู่ไหม */
+  _visible(d) {
+    const over = (vals, max) => {
+      const f = vals.filter((v) => v != null);
+      return !f.length || (Math.min(...f) <= max && Math.max(...f) >= 0);
+    };
+    return over(d.pts.map((q) => (q.t == null ? null : this.xOf(q.t))), this.paneW)
+      && over(d.pts.map((q) => (q.p == null ? null : this.yOf(q.p))), this.paneH);
   }
   cancel() {
     if (this.creating) { this.creating = null; this.invalidate(); return true; }
@@ -3938,6 +4000,7 @@ function loop(now) {
 function closeMenus() { for (const m of $$('.menu.open')) m.classList.remove('open'); }
 function placeFloating(menu, anchor, alignRight = false, up = false) {
   const r = anchor.getBoundingClientRect();
+  if (up) menu.style.maxHeight = `${Math.max(120, r.top - 14)}px`; // จอเตี้ย (มือถือ) ให้เลื่อนในเมนูแทนการทับปุ่ม
   const w = menu.offsetWidth, h = menu.offsetHeight;
   menu.style.top = `${up ? Math.max(8, r.top - h - 6) : r.bottom + 4}px`;
   menu.style.left = `${clamp(alignRight ? r.right - w : r.left, 8, window.innerWidth - w - 8)}px`;
@@ -4015,11 +4078,13 @@ function openContextMenu(e, pane) {
   if (d) {
     ov.select(d.id);
     items.push(
+      menuItem(svg('i-copy'), 'คัดลอกรูปนี้', () => { ov.copySelected(); toast('คัดลอกรูปวาดแล้ว — กด Ctrl+V เพื่อวาง', 'info', 1800); }, { key: 'Ctrl + C' }),
       menuItem(svg('i-copy'), 'ทำสำเนารูปนี้', () => ov.duplicateSelected()),
       menuItem(svg('i-lock'), d.locked ? 'ปลดล็อก' : 'ล็อกไม่ให้เลื่อน', () => ov.toggleLock(d.id)),
       menuItem(svg('i-trash'), 'ลบรูปนี้', () => ov.deleteSelected(), { key: 'Del', cls: 'mi-danger' }),
       el('hr'));
   }
+  if (ov.canPaste) items.push(menuItem(svg('i-copy'), 'วางรูปวาดตรงนี้', () => ov.paste({ x, y }), { key: 'Ctrl + V' }));
   items.push(menuItem(svg('i-reset'), 'รีเซ็ตมุมมองกราฟ', () => pane.resetView(), { key: 'Alt + R' }));
   const p = ov.pOf(y);
   if (S.acct && p != null) {
@@ -4329,11 +4394,19 @@ function bindKeys() {
   document.addEventListener('keydown', (e) => {
     if (document.querySelector('dialog[open]')) return;
     if (e.target.matches('input, select, textarea')) { if (e.key === 'Escape') e.target.blur(); return; }
-    const k = e.key, lk = k.toLowerCase(), ov = activePane()?.overlay;
+    const k = e.key, ov = activePane()?.overlay;
+    // แป้นภาษาไทย e.key จะเป็นอักษรไทย (Ctrl+C = "แ") → ใช้ตำแหน่งปุ่ม (e.code) แทนถ้าไม่ใช่ a-z
+    const lk = /^[a-z]$/i.test(k) ? k.toLowerCase() : /^Key[A-Z]$/.test(e.code) ? e.code.slice(3).toLowerCase() : k.toLowerCase();
     let done = true;
     if ((e.ctrlKey || e.metaKey) && !e.altKey) {
       if (lk === 'z' && !e.shiftKey) ov.undo();
       else if (lk === 'y' || (lk === 'z' && e.shiftKey)) ov.redo();
+      else if (lk === 'c' || lk === 'x') {
+        if (lk === 'c' ? ov.copySelected() : ov.cutSelected()) toast(`${lk === 'c' ? 'คัดลอก' : 'ตัด'}รูปวาดแล้ว — กด Ctrl+V เพื่อวาง`, 'info', 1800);
+        else if (String(window.getSelection?.() || '')) done = false; // คัดลอกข้อความตามปกติ
+        else toast('คลิกเลือกรูปวาดก่อน แล้วค่อยกด Ctrl+C', 'info', 1800);
+      }
+      else if (lk === 'v') { if (!ov.paste()) toast('ยังไม่ได้คัดลอกรูปวาด — คลิกเลือกรูปแล้วกด Ctrl+C ก่อน', 'info', 1800); }
       else done = false;
     } else if (e.altKey) {
       const code = (e.code || '').replace('Key', '').toLowerCase();
