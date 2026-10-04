@@ -135,6 +135,7 @@ td, .acct b, .tk-meta b, .qt b, .stat b { font-variant-numeric: tabular-nums; }
 .menu.ctx .mi-tag.sell { background: rgba(242,54,69,.15); color: var(--sell-ink); }
 .menu.ctx .mi-danger:hover { color: var(--down); }
 .menu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 2px; }
+.menu .menu-note { padding: 4px 10px 6px; font-size: 11px; color: var(--faint); max-width: 230px; }
 .menu .mi-dot { width: 10px; height: 10px; border-radius: 50%; display: block; }
 .tag.alert { background: var(--accent-soft); color: var(--accent); }
 .toast.warn { border-left-color: var(--accent); }
@@ -483,7 +484,7 @@ kbd { display: inline-block; min-width: 20px; text-align: center; padding: 0 5px
   .tb-group { width: 100%; overflow-x: auto; scrollbar-width: none; }
   .tb-group::-webkit-scrollbar { display: none; }
   .tb-group:last-child { justify-content: space-between; border-top: 1px solid var(--line); padding-top: 2px; }
-  .sep, .eq-lbl, .brand, #tfBtn .chev, #tzBtn .chev, .equity svg { display: none; }
+  .sep, .eq-lbl, .brand, #tfBtn .chev, #tzBtn .chev, #levBtn .chev, .equity svg { display: none; }
   .tb-btn, .tb-icon, .equity { padding: 0 5px; }
   .tb-icon { width: 32px; }
   .btn-take { margin-left: auto; padding: 0 10px; }
@@ -606,6 +607,10 @@ kbd { display: inline-block; min-width: 20px; text-align: center; padding: 0 5px
       <button class="tb-icon" id="redoBtn" title="ทำซ้ำ (Ctrl+Y)"><svg><use href="#i-redo"/></svg></button>
     </div>
     <div class="tb-group" id="tbRight">
+      <div class="dd">
+        <button class="tb-btn" id="levBtn" title="Leverage — เปลี่ยนได้ระหว่างเล่น"><span id="levLabel">1:500</span><svg class="chev"><use href="#i-chev"/></svg></button>
+        <div class="menu right" id="levMenu"></div>
+      </div>
       <button class="equity" id="eqBtn" title="ฝาก / ถอนเงิน"><span class="eq-lbl">Equity:</span> <b id="eqVal">$0.00</b><svg><use href="#i-wallet"/></svg></button>
       <button class="btn-take" id="takeBtn">Take Trade</button>
       <span class="sep"></span>
@@ -722,15 +727,21 @@ kbd { display: inline-block; min-width: 20px; text-align: center; padding: 0 5px
         </div>
       </div>
     </div>
-    <div class="fld-row">
-      <label class="fld"><span>Leverage 1:</span><input type="number" id="nsLeverage" min="1" step="1" value="500" required></label>
-      <label class="fld"><span>ค่าคอมมิชชัน ($ ต่อ 1 lot)</span><input type="number" id="nsCommission" min="0" step="0.01" value="0"></label>
+    <div class="fld">
+      <span>Leverage 1: (เปลี่ยนระหว่างเล่นได้ที่ปุ่ม 1:… แถบด้านบน)</span>
+      <div class="cap-row">
+        <input type="number" id="nsLeverage" min="1" max="3000" step="1" value="500" required>
+        <div class="chips" id="nsLevPresets"></div>
+      </div>
     </div>
     <div class="fld-row">
       <label class="fld"><span>Spread</span>
         <select id="nsSpreadMode"><option value="data">ตามข้อมูลจริงรายนาที</option><option value="fixed">คงที่</option></select>
       </label>
       <label class="fld"><span>Spread คงที่ ($)</span><input type="number" id="nsSpread" min="0" step="0.01" value="0.20"></label>
+    </div>
+    <div class="fld-row">
+      <label class="fld"><span>ค่าคอมมิชชัน ($ ต่อ 1 lot)</span><input type="number" id="nsCommission" min="0" step="0.01" value="0"></label>
       <label class="fld"><span>Stop out (%)</span><input type="number" id="nsStopOut" min="0" step="1" value="50"></label>
     </div>
     <p class="hint muted" id="nsLotHint"></p>
@@ -1467,6 +1478,21 @@ class Account {
     return {};
   }
   netDeposits() { return this.ledger.reduce((s, x) => s + x.amount, 0); }
+
+  /** เปลี่ยน Leverage ระหว่างเล่น (Margin ของออเดอร์ที่เปิดอยู่คิดใหม่ทันที)
+   *  ไม่ยอมถ้าลด Leverage แล้ว Margin level ตกถึง Stop out ทันที */
+  setLeverage(lev) {
+    lev = Math.round(lev);
+    if (!(lev >= 1)) return { error: 'Leverage ต้องมากกว่า 0' };
+    const old = this.cfg.leverage;
+    this.cfg.leverage = lev;
+    const ml = this.marginLevel();
+    if (ml != null && this.cfg.stopOut > 0 && ml <= this.cfg.stopOut) {
+      this.cfg.leverage = old;
+      return { error: `Margin ไม่พอ — ที่ 1:${lev} Margin level จะเหลือ ${ml.toFixed(0)}% (Stop out ${this.cfg.stopOut}%)` };
+    }
+    return {};
+  }
 
   // ---------- แจ้งเตือนราคา ----------
   addAlert(price, note = '') {
@@ -3144,6 +3170,8 @@ const UPDATE_RATES = [
   { v: 500, label: 'ทุก 0.5 วินาที' },
   { v: 1000, label: 'ทุก 1 วินาที' },
 ];
+const LEVERAGES = [100, 200, 400, 500, 1000, 2000, 3000];
+const MAX_LEVERAGE = 3000;
 const CHART_TYPES = [
   { id: 'bars', label: 'Bars (OHLC)', icon: 'c-bars' },
   { id: 'candles', label: 'Candles (แท่งเทียน)', icon: 'c-candles' },
@@ -4254,6 +4282,7 @@ function updateLive(force = false) {
   $('#eqVal').textContent = fmtMoney(eq);
   $('#eqVal').className = eq >= a.cfg.balance + a.netDeposits() ? '' : 'neg';
   const fl = a.floating(), ml = a.marginLevel();
+  $('#levLabel').textContent = `1:${a.cfg.leverage}`; // ย้อนกราฟแล้ว Leverage กลับเป็นค่าตอนนั้น
   $('#acct').innerHTML =
     `<span>Balance<b>${fmtMoney(a.balance)}</b></span><span>Equity<b>${fmtMoney(eq)}</b></span>` +
     `<span>Floating<b class="${fl >= 0 ? 'pos' : 'neg'}">${fmtMoney(fl, true)}</b></span>` +
@@ -4356,6 +4385,27 @@ function buildMenus() {
   }
 }
 const srcLabel = () => S.store?.manifest?.sourceLabel || 'IUX (MT5)';
+
+// ----- Leverage (เปลี่ยนได้ระหว่างเล่น) -----
+function buildLevMenu() {
+  const a = S.acct, cur = a?.cfg.leverage, px = S.lastBid || a?.bid || 2000;
+  const list = !cur || LEVERAGES.includes(cur) ? LEVERAGES : [...LEVERAGES, cur].sort((x, y) => x - y);
+  $('#levMenu').replaceChildren(
+    el('div', { class: 'menu-title' }, 'Leverage · Margin ต่อ 0.01 lot'),
+    ...list.map((v) => el('button', { class: v === cur ? 'on' : '', onclick: () => { closeMenus(); setLeverage(v); } },
+      `1:${v}`, el('small', {}, `≈ ${fmtMoney((0.01 * 100 * px) / v)}`))),
+    el('hr'),
+    el('div', { class: 'menu-note' }, 'Margin ของออเดอร์ที่เปิดอยู่จะคิดใหม่ทันที · ย้อนกราฟแล้ว Leverage กลับเป็นค่าตอนนั้น'));
+}
+function setLeverage(v) {
+  const a = S.acct;
+  if (!a || v === a.cfg.leverage) return;
+  const r = act(() => a.setLeverage(v));
+  if (r.error) { toast(r.error, 'bad'); return; }
+  updateLive(true);
+  toast(`Leverage <b>1:${v}</b>` + (a.positions.length ? ` · Margin ตอนนี้ ${fmtMoney(a.margin())}` : ''), 'info', 2500);
+  save();
+}
 function setTF(f) { activePane().setTF(f); syncLines(); buildMenus(); save(); }
 function setTZ(z) { S.tz = z; buildMenus(); rebuildAll(); renderTab(); save(); }
 
@@ -4406,15 +4456,16 @@ function openContextMenu(e, pane) {
 }
 
 function bindMenus() {
-  const toggle = (btn, menu, right = false, up = false) => $(btn).addEventListener('click', (e) => {
+  const toggle = (btn, menu, right = false, up = false, build = null) => $(btn).addEventListener('click', (e) => {
     e.stopPropagation();
     const m = $(menu), was = m.classList.contains('open');
     closeMenus();
-    if (!was) { m.classList.add('open'); placeFloating(m, $(btn), right, up); }
+    if (!was) { build?.(); m.classList.add('open'); placeFloating(m, $(btn), right, up); }
   });
   toggle('#symBtn', '#symMenu'); toggle('#tfMore', '#tfMenu'); toggle('#typeBtn', '#typeMenu');
   toggle('#indMore', '#indMenu'); toggle('#layoutBtn', '#layoutMenu'); toggle('#tzBtn', '#tzMenu', true);
   toggle('#speedBtn', '#speedMenu', false, true);
+  toggle('#levBtn', '#levMenu', true, false, buildLevMenu);
   document.addEventListener('click', closeMenus);
   window.addEventListener('resize', closeMenus);
   $('#topbar').addEventListener('scroll', closeMenus);
@@ -4639,8 +4690,11 @@ function openSession(cancellable) {
       ? `ทุน ${fmtMoney(bal)} · 0.01 lot = $1 ต่อราคาทองขยับ $1 · Margin 0.01 lot ≈ ${fmtMoney(m)} ที่ 1:${lev} · Lot เริ่มต้นแนะนำ ${fmtLots(lotsFor(bal))}`
       : '';
     for (const b of $$('#nsPresets button')) b.classList.toggle('on', +b.dataset.v === bal);
+    for (const b of $$('#nsLevPresets button')) b.classList.toggle('on', +b.dataset.v === lev);
   };
   for (const b of $$('#nsPresets button')) b.onclick = () => { $('#nsBalance').value = b.dataset.v; hint(); };
+  $('#nsLevPresets').replaceChildren(...LEVERAGES.map((v) =>
+    el('button', { type: 'button', 'data-v': v, onclick: () => { $('#nsLeverage').value = v; hint(); } }, `1:${v}`)));
   $('#nsBalance').oninput = hint; $('#nsLeverage').oninput = hint;
   hint();
   $('#nsCancel').hidden = !cancellable;
@@ -4652,7 +4706,7 @@ function openSession(cancellable) {
     startSession({
       start: clamp(t ?? first + 86400, first + 86400, last - 3600),
       balance: Math.max(1, round2(+$('#nsBalance').value || 1000)),
-      leverage: Math.max(1, +$('#nsLeverage').value || 100),
+      leverage: clamp(Math.round(+$('#nsLeverage').value || 500), 1, MAX_LEVERAGE),
       commission: Math.max(0, +$('#nsCommission').value || 0),
       stopOut: Math.max(0, +$('#nsStopOut').value || 0),
       spreadMode: $('#nsSpreadMode').value,
