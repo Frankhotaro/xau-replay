@@ -884,6 +884,7 @@ kbd { display: inline-block; min-width: 20px; text-align: center; padding: 0 5px
         <tr><td><kbd>Alt</kbd>+<kbd>F</kbd></td><td>Fib retracement</td></tr>
         <tr><td><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd></td><td>สี่เหลี่ยม (ตีกรอบ)</td></tr>
         <tr><td><kbd>Shift</kbd> + ลาก</td><td>วัดระยะราคา/เวลา</td></tr>
+        <tr><td><kbd>Shift</kbd> ขณะวาด/ลากเส้น</td><td>ล็อกเส้นเทรนด์ / Ray / Extended / Channel เป็นแนวนอน</td></tr>
         <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></td><td>ย้อน / ทำซ้ำ รูปวาด</td></tr>
         <tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>X</kbd> / <kbd>V</kbd></td><td>คัดลอก / ตัด / วาง รูปวาดที่เลือก</td></tr>
         <tr><td><kbd>Del</kbd> · <kbd>Esc</kbd></td><td>ลบรูปที่เลือก · ยกเลิก</td></tr>
@@ -1871,16 +1872,16 @@ class IndicatorSet {
 return { IND_TYPES, indLabel, IndicatorSet };
 })();
 __m['overlay'] = (() => {
-const { el } = __m['util'];
+const { el, clamp } = __m['util'];
 const { CrosshairMode } = __m['lwc'];
 
 // ---------- รายการเครื่องมือ (แบบ TradingView) ----------
 const TOOLS = {
   cursor: { label: 'กากบาท (Crosshair)', n: 0 },
   arrow: { label: 'ลูกศร (ซ่อนเส้นกากบาท)', n: 0 },
-  trend: { label: 'เส้นเทรนด์ (Trend line)', key: 'Alt+T', n: 2 },
-  ray: { label: 'Ray', n: 2 },
-  extended: { label: 'เส้นยืดสองทาง (Extended line)', n: 2 },
+  trend: { label: 'เส้นเทรนด์ (Trend line) · Shift = แนวนอน', key: 'Alt+T', n: 2 },
+  ray: { label: 'Ray · Shift = แนวนอน', n: 2 },
+  extended: { label: 'เส้นยืดสองทาง (Extended line) · Shift = แนวนอน', n: 2 },
   hline: { label: 'เส้นแนวนอน (Horizontal line)', key: 'Alt+H', n: 1 },
   hray: { label: 'Horizontal ray', key: 'Alt+J', n: 1 },
   vline: { label: 'เส้นแนวตั้ง (Vertical line)', key: 'Alt+V', n: 1 },
@@ -1917,7 +1918,7 @@ const DEFAULTS = {
 };
 const HIT = 6;
 const DASH = { solid: [], dashed: [6, 4], dotted: [1.5, 3] };
-const LINE_TYPES = new Set(['trend', 'ray', 'extended', 'channel']);
+const LINE_TYPES = new Set(['trend', 'ray', 'extended', 'channel']); // เส้นที่กด Shift แล้วล็อกเป็นแนวนอนได้
 
 function hexA(hex, a) {
   const n = parseInt(hex.slice(1), 16);
@@ -2077,7 +2078,16 @@ class Overlay {
     w.addEventListener('dblclick', (e) => this._dbl(e), true);
     window.addEventListener('pointermove', (e) => this._move(e), true);
     window.addEventListener('pointerup', (e) => this._up(e), true);
+    // กด/ปล่อย Shift ระหว่างวาดหรือลาก → อัปเดตเส้นทันทีโดยไม่ต้องขยับเมาส์
+    const shift = (e) => {
+      if (e.key !== 'Shift' || !this._ptr || !(this.creating || this.drag)) return;
+      this._move({ clientX: this._ptr.x, clientY: this._ptr.y, shiftKey: e.type === 'keydown', preventDefault() {} });
+    };
+    window.addEventListener('keydown', shift);
+    window.addEventListener('keyup', shift);
   }
+  /** Shift ค้าง = ล็อกเส้นเป็นแนวนอน: ใช้ราคาเดียวกับจุดอ้างอิง (ปลายอีกข้าง) */
+  _hLock(type, pt, ref, on) { return on && ref && LINE_TYPES.has(type) ? { ...pt, p: ref.p } : pt; }
   _consume(e) { e.preventDefault(); e.stopPropagation(); this.swallowUntil = performance.now() + 400; }
   _inPane(x, y) { return x >= 0 && y >= 0 && x <= this.paneW && y <= this.paneH; }
 
@@ -2088,7 +2098,7 @@ class Overlay {
     if (this.measure && !this.creating) { this.measure = null; this.invalidate(); }
     const tool = this.tool, spec = TOOLS[tool];
 
-    if (this.creating) { this._consume(e); this._clickCreate(x, y); return; }
+    if (this.creating) { this._consume(e); this._clickCreate(x, y, e.shiftKey); return; }
 
     if (tool === 'replay') {
       this._consume(e);
@@ -2097,7 +2107,10 @@ class Overlay {
       this.onReplayPick?.(L);
       return;
     }
-    if (spec.n !== 0 || (e.shiftKey && !this.hideAll)) {
+    // Shift + ลากจุดปลายของรูปที่เลือกอยู่ = ล็อกแนวนอน (ไม่ใช่เครื่องมือวัดระยะ)
+    const shiftEdit = e.shiftKey && spec.n === 0 && this.selected != null
+      && ((h) => h && h.d.id === this.selected && h.part !== 'move')(this._hit(x, y));
+    if (spec.n !== 0 || (e.shiftKey && !this.hideAll && !shiftEdit)) {
       this._consume(e);
       const pt = this._pt(x, y);
       if (!pt) return;
@@ -2128,9 +2141,10 @@ class Overlay {
     if (this.selected) { this.selected = null; this._changed(false); }
   }
 
-  _clickCreate(x, y) {
-    const c = this.creating, pt = this._pt(x, y);
-    if (!pt) return;
+  _clickCreate(x, y, shift) {
+    const c = this.creating, raw = this._pt(x, y);
+    if (!raw) return;
+    const pt = c.stage === 1 ? this._hLock(c.type, raw, c.pts[0], shift) : raw;
     if (c.type === 'channel') {
       if (c.stage === 1) { c.pts[1] = pt; c.stage = 2; this.invalidate(); return; }
       this._finishCreate(); return;
@@ -2139,6 +2153,7 @@ class Overlay {
   }
 
   _move(e) {
+    this._ptr = { x: e.clientX, y: e.clientY };
     const { x, y } = this._local(e);
     const c = this.creating;
     if (c) {
@@ -2152,7 +2167,8 @@ class Overlay {
         if (pt) c.off = pt.p - this._linePrice(c.pts, pt.t);
       } else {
         const pt = this._pt(x, y);
-        if (pt) c.pts[c.stage] = pt;
+        c.hlock = !!e.shiftKey && c.stage === 1 && LINE_TYPES.has(c.type);
+        if (pt) c.pts[c.stage] = this._hLock(c.type, pt, c.pts[0], c.hlock);
       }
       this.invalidate();
       return;
@@ -2183,6 +2199,7 @@ class Overlay {
     if (!pt) return;
     const k = dr.part;
     const P = d.pts;
+    dr.hlock = !!e.shiftKey && LINE_TYPES.has(d.type) && (k === 0 || k === 1);
     switch (d.type) {
       case 'hline': P[0].p = pt.p; break;
       case 'vline': P[0].t = pt.t; break;
@@ -2194,13 +2211,13 @@ class Overlay {
         break;
       case 'channel':
         if (k === 2) { const p0 = this.pOf(dr.y0); if (p0 != null) d.off = o.off + (this.pOf(y) - p0); }
-        else P[k] = pt;
+        else P[k] = this._hLock(d.type, pt, P[1 - k], dr.hlock);
         break;
       case 'long': case 'short':
         if (k === 0) P[0] = pt; else if (k === 1) P[1].p = pt.p; else if (k === 2) P[2].p = pt.p;
         else { P[1].t = pt.t; P[2].t = pt.t; }
         break;
-      default: P[k] = pt;
+      default: P[k] = this._hLock(d.type, pt, P[1 - k], dr.hlock);
     }
     this.invalidate();
   }
@@ -2628,6 +2645,12 @@ class Overlay {
       const d = { type: c.type, pts: c.pts, off: c.off, width: 1, style: 'solid', ...DEFAULTS[c.type], color: (DEFAULTS[c.type] || {}).color || '#2962ff' };
       if (c.type === 'measure') this._paintMeasure(g, c);
       else { const G = this._geom(d); if (G) this._paint(g, d, G, true); }
+      if (c.hlock) this._lockTag(g, c.pts[1], d.color);
+    }
+    const dr = this.drag;
+    if (dr?.hlock && !this.hideAll) {
+      const d = this.drawings.find((q) => q.id === dr.id);
+      if (d) this._lockTag(g, d.pts[dr.part], d.color);
     }
     if (this.measure) this._paintMeasure(g, this.measure);
     if (this.tool === 'replay' && this.hover) this._paintReplayHover(g);
@@ -2747,6 +2770,20 @@ class Overlay {
     g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle';
     g.fillText(lines[0], mx, by + 12); g.fillText(lines[1], mx, by + 29);
     g.textAlign = 'left';
+  }
+
+  /** ป้ายบอกว่าเส้นถูกล็อกแนวนอน (กด Shift อยู่) */
+  _lockTag(g, pt, col) {
+    const x = pt && this.xOf(pt.t), y = pt && this.yOf(pt.p);
+    if (x == null || y == null) return;
+    const text = `แนวนอน ${pt.p.toFixed(2)}`;
+    g.font = `600 11px ${this.font}`;
+    const w = g.measureText(text).width + 12;
+    const bx = clamp(x + 10, 4, this.paneW - w - 4), by = y - 28 < 4 ? y + 10 : y - 28;
+    g.setLineDash([]);
+    g.fillStyle = col; g.fillRect(bx, by, w, 18);
+    g.fillStyle = '#fff'; g.textBaseline = 'middle'; g.textAlign = 'left';
+    g.fillText(text, bx + 6, by + 9.5);
   }
 
   _paintReplayHover(g) {
