@@ -383,6 +383,54 @@ dialog::backdrop { background: rgba(5,6,8,.55); }
 .chips button:hover { color: var(--text); border-color: var(--line-2); }
 .chips button.on { color: var(--accent); border-color: var(--accent); }
 .cap-row { display: flex; flex-direction: column; gap: 6px; }
+
+/* ช่องเลือกวันที่ (js/picker.js) */
+.dp { display: flex; gap: 8px; }
+.dp-ico { display: grid; place-items: center; flex: none; }
+.dp-ico svg { width: 16px; height: 16px; }
+.dp-field {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px; text-align: left;
+  background: var(--bg); border: 1px solid var(--line-2); border-radius: var(--radius); font-variant-numeric: tabular-nums;
+}
+.dp-field:hover, .dp-field.open { border-color: var(--accent); }
+.dp-field .dp-ico { color: var(--muted); }
+.dp-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.dp-ok { display: none; color: var(--up); }
+.dp-ok svg { width: 18px; height: 18px; }
+.dp-field.done .dp-ok { display: grid; }
+.dp-field.done { animation: dpflash 1.2s ease-out; }
+@keyframes dpflash { from { border-color: var(--up); box-shadow: 0 0 0 3px rgba(38, 166, 154, .3); } }
+.dp-rand {
+  display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; flex: none; white-space: nowrap; font-weight: 600;
+  background: var(--panel-2); border: 1px solid var(--line-2); border-radius: var(--radius);
+}
+.dp-rand:hover { border-color: var(--accent); color: var(--accent); }
+.dp-pop {
+  position: fixed; z-index: 80; width: 300px; max-width: calc(100vw - 16px); padding: 10px; display: flex; flex-direction: column; gap: 8px;
+  background: var(--panel); border: 1px solid var(--line-2); border-radius: 10px; box-shadow: var(--shadow);
+}
+.dp-head { display: flex; align-items: center; gap: 4px; }
+.dp-nav { width: 30px; height: 30px; display: grid; place-items: center; flex: none; border-radius: var(--radius); color: var(--muted); }
+.dp-nav:hover:not(:disabled) { background: var(--panel-2); color: var(--text); }
+.dp-nav:disabled { opacity: .3; cursor: default; }
+.dp-nav.prev svg { transform: rotate(90deg); }
+.dp-nav.next svg { transform: rotate(-90deg); }
+.dp-sel { flex: 1; min-width: 0; height: 30px; padding: 0 6px; background: var(--bg); border: 1px solid var(--line-2); border-radius: var(--radius); }
+.dp-sel:focus { border-color: var(--accent); outline: none; }
+.dp-year { flex: none; width: 74px; }
+.dp-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; text-align: center; }
+.dp-wd { font-size: 11px; color: var(--faint); padding: 2px 0 4px; }
+.dp-day { height: 32px; border-radius: var(--radius); font-variant-numeric: tabular-nums; }
+.dp-day:hover:not(:disabled) { background: var(--panel-2); }
+.dp-day:disabled { color: var(--faint); opacity: .45; cursor: default; }
+.dp-day.sel { background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+.dp-day.sel:disabled { opacity: .7; }
+.dp-time { display: flex; align-items: center; gap: 6px; padding-top: 6px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+.dp-time .dp-sel { flex: none; width: 64px; color: var(--text); font-size: 13px; }
+.dp-info { font-size: 12px; color: var(--muted); min-height: 18px; }
+.dp-info b { color: var(--text); }
+.dp-foot { display: flex; align-items: center; gap: 6px; }
+.dp-foot .dp-btn { height: 32px; padding: 0 12px; display: inline-flex; align-items: center; gap: 5px; }
 .funds-sum { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .funds-sum div { background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius); padding: 6px 10px; }
 .funds-sum span { display: block; font-size: 11px; color: var(--muted); }
@@ -481,6 +529,9 @@ kbd { display: inline-block; min-width: 20px; text-align: center; padding: 0 5px
     <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
     <symbol id="i-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+    <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 10h17M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-shuffle" viewBox="0 0 24 24"><path d="M3 7h3.5c4.5 0 6.5 10 11 10H21M3 17h3.5c1.8 0 3-1.6 4.1-3.6M13.4 9.6C14.5 8.4 15.7 7 17.5 7H21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M18.5 4.5L21 7l-2.5 2.5M18.5 14.5L21 17l-2.5 2.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <!-- เครื่องมือวาด -->
     <symbol id="t-cursor" viewBox="0 0 24 24"><path d="M12 3v7M12 14v7M3 12h7M14 12h7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
     <symbol id="t-arrow" viewBox="0 0 24 24"><path d="M6 3l12 9-5.5 1 3 6.5-2.5 1.2-3-6.6L6 18z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
@@ -660,7 +711,7 @@ kbd { display: inline-block; min-width: 20px; text-align: center; padding: 0 5px
   <form method="dialog" class="dlg">
     <h2>เริ่มแบ็กเทสใหม่</h2>
     <p class="muted small" id="dataRange"></p>
-    <label class="fld"><span>เริ่มเล่นจากวันที่ (ตามเขตเวลาที่เลือก)</span><input type="datetime-local" id="nsStart" required></label>
+    <div class="fld"><span>เริ่มเล่นจากวันที่ (ตามเขตเวลาที่เลือก)</span><input type="hidden" id="nsStart"></div>
     <div class="fld">
       <span>เงินทุนเริ่มต้น ($)</span>
       <div class="cap-row">
@@ -695,7 +746,7 @@ kbd { display: inline-block; min-width: 20px; text-align: center; padding: 0 5px
 <dialog id="dlgJump">
   <form method="dialog" class="dlg narrow">
     <h2>กระโดดไปวันที่</h2>
-    <label class="fld"><span>วันที่และเวลา</span><input type="datetime-local" id="jmpTo" required></label>
+    <div class="fld"><span>วันที่และเวลา</span><input type="hidden" id="jmpTo"></div>
     <div class="chips" id="jmpQuick"></div>
     <p class="warn" id="jmpWarn" hidden></p>
     <menu>
@@ -2137,7 +2188,9 @@ class Overlay {
       case 'vline': P[0].t = pt.t; break;
       case 'rect':
         if (k === 0) P[0] = pt; else if (k === 1) P[1] = pt;
-        else if (k === 2) { P[0].t = pt.t; P[1].p = pt.p; } else { P[1].t = pt.t; P[0].p = pt.p; }
+        else if (k === 2) { P[0].t = pt.t; P[1].p = pt.p; } else if (k === 3) { P[1].t = pt.t; P[0].p = pt.p; }
+        else if (k === 4) P[0].p = pt.p; else if (k === 5) P[1].p = pt.p;
+        else if (k === 6) P[0].t = pt.t; else P[1].t = pt.t;
         break;
       case 'channel':
         if (k === 2) { const p0 = this.pOf(dr.y0); if (p0 != null) d.off = o.off + (this.pOf(y) - p0); }
@@ -2187,7 +2240,8 @@ class Overlay {
       if (this.getDraggables().some((d) => { const yy = this.yOf(d.price); return yy != null && Math.abs(yy - y) <= HIT; })) cur = 'ns';
       else {
         const h = this._hit(x, y);
-        if (h) cur = h.d.locked || this.lockAll ? 'pt' : h.d.type === 'hline' ? 'ns' : h.d.type === 'vline' ? 'ew' : h.part === 'move' ? 'move' : 'pt';
+        const edge = h?.d.type === 'rect' && h.part >= 4 ? (h.part < 6 ? 'ns' : 'ew') : null;
+        if (h) cur = h.d.locked || this.lockAll ? 'pt' : h.d.type === 'hline' ? 'ns' : h.d.type === 'vline' ? 'ew' : edge || (h.part === 'move' ? 'move' : 'pt');
       }
     }
     if (this.wrap.dataset.hover !== cur) this.wrap.dataset.hover = cur;
@@ -2308,6 +2362,10 @@ class Overlay {
         G.boxes.push(G.rect);
         G.segs.push([L, T, R, T], [L, B, R, B], [L, T, L, B], [R, T, R, B]);
         G.handles.push([0, a.x, a.y], [1, b.x, b.y], [2, a.x, b.y], [3, b.x, a.y]);
+        // จุดกลางขอบแบบ TradingView: 4/5 = ขอบราคาของจุด a/b (ลากขึ้นลง), 6/7 = ขอบเวลาของจุด a/b (ลากซ้ายขวา)
+        const cx = (L + Math.min(R, W)) / 2, cy = (T + B) / 2;
+        G.handles.push([4, cx, a.y], [5, cx, b.y], [6, a.x, cy]);
+        if (!d.extR) G.handles.push([7, b.x, cy]);
         break;
       }
       case 'brush': {
@@ -2820,6 +2878,205 @@ function buildToolbar(nav, ov, extras) {
 
 return { TOOLS, TOOL_GROUPS, DRAW_COLORS, Overlay, buildToolbar };
 })();
+__m['picker'] = (() => {
+// ช่องเลือกวัน-เวลาแบบมีปุ่ม "ตกลง" + ปุ่มสุ่ม
+// (ใช้แทน <input type=datetime-local> ของเบราว์เซอร์ ซึ่งไม่มีปุ่มยืนยัน ผู้ใช้ไม่รู้ว่าเลือกแล้วหรือยัง)
+const { el, clamp, WEEKDAYS_TH, toInputValue, fromInputValue } = __m['util'];
+
+const MONTHS = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+const MONTHS_SHORT = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+const DAY_HEAD = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
+const pad = (n) => String(n).padStart(2, '0');
+const icon = (id) => `<svg><use href="#${id}"/></svg>`;
+
+// ค่าในช่องเป็นข้อความ "YYYY-MM-DDTHH:MM" ตามเขตเวลาที่เลือก (รูปแบบเดียวกับ datetime-local)
+const parse = (v) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(v || '');
+  return m && { y: +m[1], m: +m[2] - 1, d: +m[3], hh: +m[4], mm: +m[5] };
+};
+const fmt = (s) => `${s.y}-${pad(s.m + 1)}-${pad(s.d)}T${pad(s.hh)}:${pad(s.mm)}`;
+const dayKey = (y, m, d) => {
+  const t = new Date(Date.UTC(y, m, d));
+  return `${t.getUTCFullYear()}-${pad(t.getUTCMonth() + 1)}-${pad(t.getUTCDate())}`;
+};
+
+/** ข้อความแสดงวันเวลา เช่น "พฤ. 15 ก.พ. 2024 · 14:30" */
+function fmtPick(v) {
+  const s = parse(v);
+  if (!s) return 'เลือกวันที่';
+  const wd = WEEKDAYS_TH[new Date(Date.UTC(s.y, s.m, s.d)).getUTCDay()];
+  return `${wd} ${s.d} ${MONTHS_SHORT[s.m]} ${s.y} · ${pad(s.hh)}:${pad(s.mm)}`;
+}
+
+/**
+ * เปลี่ยน <input type=hidden> ให้เป็นช่องเลือกวันที่ที่มีปฏิทิน + ปุ่ม ตกลง/ยกเลิก (+ ปุ่มสุ่มถ้ามี opts.random)
+ * ขอบเขตอ่านจาก input.min / input.max ตอนเปิด · ค่าที่ผู้ใช้ยืนยันแล้วจะยิง event 'input' ที่ input เดิม
+ *   opts.tz()             เขตเวลาที่ใช้แสดง
+ *   opts.hasData(a, b)    ช่วงเวลา utc [a, b) มีแท่งราคาไหม (วันที่ไม่มีข้อมูลจะกดไม่ได้)
+ *   opts.snap(t)          เวลาแท่งแรกที่ ≥ t (ไว้บอกว่าตลาดปิดเวลานั้น)
+ *   opts.random()         เวลา utc ที่สุ่มได้ หรือ null
+ */
+function attachPicker(input, opts) {
+  const text = el('span', { class: 'dp-text' });
+  const field = el('button', { type: 'button', class: 'dp-field', title: 'เลือกวันและเวลา', 'aria-haspopup': 'dialog' },
+    el('span', { class: 'dp-ico', html: icon('i-cal') }), text, el('span', { class: 'dp-ok', html: icon('i-check') }));
+  const randBtn = opts.random
+    ? el('button', { type: 'button', class: 'dp-rand', title: 'สุ่มวันและเวลาที่ตลาดเปิด' }, el('span', { class: 'dp-ico', html: icon('i-shuffle') }), 'สุ่มวัน')
+    : null;
+  input.after(el('div', { class: 'dp' }, field, randBtn));
+  const host = input.closest('dialog') || document.body;
+
+  // ตั้งค่าจากโค้ด (input.value = ...) → อัปเดตข้อความในช่องด้วย
+  const desc = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+  Object.defineProperty(input, 'value', {
+    configurable: true,
+    get() { return desc.get.call(this); },
+    set(v) { desc.set.call(this, v); text.textContent = fmtPick(v); field.classList.remove('done'); },
+  });
+
+  const inRange = (v) => (input.min && v < input.min ? input.min : input.max && v > input.max ? input.max : v);
+  function commit(v) {
+    input.value = inRange(v);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    field.classList.remove('done');
+    void field.offsetWidth; // เริ่มแอนิเมชันใหม่
+    field.classList.add('done');
+  }
+  const randomValue = () => { const t = opts.random?.(); return t == null ? null : toInputValue(t, opts.tz()); };
+
+  // ---------- ป๊อปอัปปฏิทิน ----------
+  let pop = null, sel = null, vy = 0, vm = 0, ui = null;
+  function close() {
+    if (!pop) return;
+    pop.remove(); pop = null;
+    field.classList.remove('open');
+    document.removeEventListener('pointerdown', outside, true);
+  }
+  function outside(e) { if (pop && !pop.contains(e.target) && !field.contains(e.target)) close(); }
+  function apply() { commit(fmt(sel)); close(); field.focus(); }
+
+  function open() {
+    sel = parse(input.value) || parse(input.min) || { y: 2024, m: 0, d: 1, hh: 0, mm: 0 };
+    vy = sel.y; vm = sel.m;
+    const opt = (n, on) => el('option', { value: n, selected: on }, pad(n));
+    ui = {
+      head: el('div', { class: 'dp-head' }),
+      grid: el('div', { class: 'dp-grid', role: 'grid' }),
+      hh: el('select', { class: 'dp-sel', 'aria-label': 'ชั่วโมง' }, ...Array.from({ length: 24 }, (_, i) => opt(i, i === sel.hh))),
+      mm: el('select', { class: 'dp-sel', 'aria-label': 'นาที' }, ...Array.from({ length: 60 }, (_, i) => opt(i, i === sel.mm))),
+      info: el('div', { class: 'dp-info', 'aria-live': 'polite' }),
+    };
+    ui.hh.onchange = () => { sel.hh = +ui.hh.value; renderInfo(); };
+    ui.mm.onchange = () => { sel.mm = +ui.mm.value; renderInfo(); };
+    pop = el('div', { class: 'dp-pop', role: 'dialog', 'aria-label': 'เลือกวันและเวลา' },
+      ui.head, ui.grid,
+      el('div', { class: 'dp-time' }, el('span', { class: 'dp-ico', html: icon('i-clock') }), el('span', {}, 'เวลา'), ui.hh, el('b', {}, ':'), ui.mm),
+      ui.info,
+      el('div', { class: 'dp-foot' },
+        opts.random ? el('button', { type: 'button', class: 'btn ghost dp-btn', title: 'สุ่มวันและเวลาที่ตลาดเปิด', onclick: randomInPop },
+          el('span', { class: 'dp-ico', html: icon('i-shuffle') }), 'สุ่ม') : null,
+        el('span', { class: 'grow' }),
+        el('button', { type: 'button', class: 'btn ghost dp-btn', onclick: () => { close(); field.focus(); } }, 'ยกเลิก'),
+        el('button', { type: 'button', class: 'btn primary dp-btn', onclick: apply }, 'ตกลง')));
+    pop.addEventListener('keydown', onKey);
+    host.append(pop);
+    renderCal(); renderInfo(); place();
+    field.classList.add('open');
+    document.addEventListener('pointerdown', outside, true);
+    (ui.grid.querySelector('.dp-day.sel:not(:disabled)') || ui.grid.querySelector('.dp-day:not(:disabled)'))?.focus();
+  }
+
+  function randomInPop() {
+    const v = randomValue();
+    if (!v) return;
+    sel = parse(v); vy = sel.y; vm = sel.m;
+    ui.hh.value = sel.hh; ui.mm.value = sel.mm;
+    renderCal(); renderInfo();
+  }
+
+  function renderCal() {
+    const tz = opts.tz();
+    const minD = (input.min || '').slice(0, 10), maxD = (input.max || '').slice(0, 10);
+    const ym = `${vy}-${pad(vm + 1)}`;
+    const go = (k) => { vm += k; if (vm < 0) { vm = 11; vy--; } else if (vm > 11) { vm = 0; vy++; } renderCal(); };
+    const y0 = +(minD.slice(0, 4) || vy), y1 = +(maxD.slice(0, 4) || vy);
+    const month = el('select', { class: 'dp-sel', 'aria-label': 'เดือน', onchange: () => { vm = +month.value; renderCal(); } },
+      ...MONTHS.map((n, i) => el('option', { value: i, selected: i === vm }, n)));
+    const year = el('select', { class: 'dp-sel dp-year', 'aria-label': 'ปี', onchange: () => { vy = +year.value; renderCal(); } },
+      ...Array.from({ length: Math.max(y1, vy) - Math.min(y0, vy) + 1 }, (_, i) => Math.min(y0, vy) + i)
+        .map((y) => el('option', { value: y, selected: y === vy }, String(y))));
+    ui.head.replaceChildren(
+      el('button', { type: 'button', class: 'dp-nav prev', title: 'เดือนก่อน', disabled: !!minD && ym <= minD.slice(0, 7), onclick: () => go(-1), html: icon('i-chev') }),
+      month, year,
+      el('button', { type: 'button', class: 'dp-nav next', title: 'เดือนถัดไป', disabled: !!maxD && ym >= maxD.slice(0, 7), onclick: () => go(1), html: icon('i-chev') }));
+    const cells = DAY_HEAD.map((h) => el('span', { class: 'dp-wd' }, h));
+    const lead = new Date(Date.UTC(vy, vm, 1)).getUTCDay();
+    for (let i = 0; i < lead; i++) cells.push(el('span'));
+    const n = new Date(Date.UTC(vy, vm + 1, 0)).getUTCDate();
+    for (let d = 1; d <= n; d++) {
+      const key = dayKey(vy, vm, d);
+      let ok = (!minD || key >= minD) && (!maxD || key <= maxD);
+      if (ok && opts.hasData) ok = opts.hasData(fromInputValue(`${key}T00:00`, tz), fromInputValue(`${dayKey(vy, vm, d + 1)}T00:00`, tz));
+      const on = sel.y === vy && sel.m === vm && sel.d === d;
+      const b = el('button', {
+        type: 'button', class: 'dp-day' + (on ? ' sel' : ''), disabled: !ok, 'aria-pressed': on ? 'true' : 'false',
+        title: ok ? '' : 'ไม่มีข้อมูล (ตลาดปิด)',
+      }, String(d));
+      b.onclick = () => {
+        sel = { ...sel, y: vy, m: vm, d };
+        for (const x of ui.grid.querySelectorAll('.dp-day.sel')) { x.classList.remove('sel'); x.setAttribute('aria-pressed', 'false'); }
+        b.classList.add('sel'); b.setAttribute('aria-pressed', 'true');
+        renderInfo();
+      };
+      b.ondblclick = apply;
+      cells.push(b);
+    }
+    ui.grid.replaceChildren(...cells);
+  }
+
+  function renderInfo() {
+    const v = fmt(sel), fixed = inRange(v), tz = opts.tz();
+    const parts = [el('span', {}, 'เลือก: '), el('b', {}, fmtPick(v))];
+    if (fixed !== v) parts.push(el('div', { class: 'warn' }, `อยู่นอกช่วงข้อมูล — จะใช้ ${fmtPick(fixed)}`));
+    else if (opts.snap) {
+      const t = fromInputValue(v, tz), s = opts.snap(t);
+      if (s != null && s - t >= 60) parts.push(el('div', { class: 'warn' }, `ตลาดปิดเวลานี้ — จะเริ่มที่แท่งถัดไป ${fmtPick(toInputValue(s, tz))}`));
+    }
+    ui.info.replaceChildren(...parts);
+  }
+
+  function place() {
+    if (!pop) return;
+    const r = field.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
+    let top = r.bottom + 6;
+    if (top + h > innerHeight - 8) top = r.top - h - 6 >= 8 ? r.top - h - 6 : Math.max(8, innerHeight - h - 8);
+    pop.style.left = `${clamp(r.left, 8, Math.max(8, innerWidth - w - 8))}px`;
+    pop.style.top = `${top}px`;
+  }
+
+  function onKey(e) {
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); field.focus(); }
+    else if (e.key === 'Enter' && (e.target.classList.contains('dp-day') || e.target.tagName === 'SELECT')) {
+      e.preventDefault();
+      if (e.target.classList.contains('dp-day')) e.target.click();
+      apply();
+    }
+  }
+
+  field.onclick = () => (pop ? close() : open());
+  if (randBtn) randBtn.onclick = () => { const v = randomValue(); if (v) { close(); commit(v); } };
+  // Esc ขณะเปิดปฏิทิน ให้ปิดแค่ปฏิทิน ไม่ปิดหน้าต่างทั้งหน้า
+  if (host !== document.body) {
+    host.addEventListener('cancel', (e) => { if (pop) { e.preventDefault(); close(); } });
+    host.addEventListener('scroll', place);
+  }
+  input.form?.addEventListener('submit', close);
+  window.addEventListener('resize', place);
+  return { close };
+}
+
+return { fmtPick, attachPicker };
+})();
 __m['app'] = (() => {
 const { createChart, CandlestickSeries, BarSeries, HistogramSeries, LineSeries, AreaSeries, BaselineSeries, ColorType, CrosshairMode, LineStyle } = __m['lwc'];
 const { $, $$, el, fmtPrice, fmtMoney, fmtPct, fmtLots, round2, clamp, TIMEZONES, tzById, TIMEFRAMES, QUICK_TFS, tfById, bucketStart, fmtTime, weekdayTH, toInputValue, fromInputValue, debounce, downloadText } = __m['util'];
@@ -2827,6 +3084,7 @@ const { M1Store, TFView } = __m['data'];
 const { Account, computeStats } = __m['engine'];
 const { IndicatorSet, IND_TYPES, indLabel } = __m['indicators'];
 const { Overlay, buildToolbar } = __m['overlay'];
+const { attachPicker } = __m['picker'];
 
 const SAVE_KEY = 'xauReplay.v1';
 const HISTORY_BARS = 1500;
@@ -4295,6 +4553,30 @@ function openSettings() {
   dlg.showModal();
 }
 
+// ----- ช่องเลือกวันที่ (ปฏิทิน + ปุ่มตกลง + สุ่ม) -----
+/** สุ่มเวลาจากแท่งจริงในช่วง [from, to) จึงได้แต่เวลาที่ตลาดเปิด (แท่งที่มีมากถ่วงน้ำหนักตามเวลาซื้อขายจริง) แล้วปัดลงทีละ 5 นาที */
+function randomTime(from, to) {
+  const st = S.store, lo = st.indexAtOrAfter(from), hi = st.indexAtOrAfter(to) - 1;
+  if (hi < lo) return null;
+  const t = st.time(lo + Math.floor(Math.random() * (hi - lo + 1)));
+  return st.time(st.indexAtOrAfter(t - (t % 300)));
+}
+const WEEK = 7 * 86400;
+function bindPickers() {
+  const common = {
+    tz: () => S.tz,
+    hasData: (a, b) => { const st = S.store; if (!st) return true; const i = st.indexAtOrAfter(a); return i < st.n && st.time(i) < b; },
+    snap: (t) => { const st = S.store; if (!st || t == null) return null; const i = st.indexAtOrAfter(t); return i < st.n ? st.time(i) : null; },
+  };
+  // เริ่มเซสชัน: เว้นประวัติไว้ดูก่อนจุดเริ่ม 1 สัปดาห์ และเหลือข้อมูลให้เล่นต่ออย่างน้อย 1 สัปดาห์
+  const span = (a, b) => {
+    const st = S.store;
+    return st ? randomTime(st.firstTime() + a, st.lastTime() - b) ?? randomTime(st.firstTime() + 86400, st.lastTime() - 3600) : null;
+  };
+  attachPicker($('#nsStart'), { ...common, random: () => span(WEEK, WEEK) });
+  attachPicker($('#jmpTo'), { ...common, random: () => span(86400, 3600) });
+}
+
 // ----- New session -----
 function openSession(cancellable) {
   const st = S.store, tz = S.tz, dlg = $('#dlgSession');
@@ -4513,7 +4795,7 @@ window.__xau = { S, T, panes, activePane }; // สำหรับ debug ใน c
 
 async function boot() {
   setLayout('1');
-  bindMenus(); bindTicket(); bindKeys(); buildMenus();
+  bindMenus(); bindTicket(); bindKeys(); bindPickers(); buildMenus();
   requestAnimationFrame(loop);
   try {
     S.store = await M1Store.load('./', (k, n) => {
